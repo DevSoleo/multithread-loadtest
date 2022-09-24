@@ -14,13 +14,17 @@ from collections import defaultdict, Counter
 from datetime import datetime as dt
 import threading
 
-form_cats = MultipartEncoder(fields={'vote': 'Cats'})
-form_cats_s = form_cats.to_string()
-form_dogs = MultipartEncoder(fields={'vote': 'Dogs'})
-form_dogs_s = form_dogs.to_string()
+# x = le temps
+# y = nombres de réponses
 
-x = [] # le temps
-y = [] # nombres de réponses
+url = "http://votingapp-b4g4ld-rg.eastus.cloudapp.azure.com/"
+
+# Création des formulaires
+form_cats = MultipartEncoder(fields={'vote': 'Cats'})
+form_dogs = MultipartEncoder(fields={'vote': 'Dogs'})
+
+form_cats_s = form_cats.to_string()
+form_dogs_s = form_dogs.to_string()
 
 res = []
 
@@ -29,10 +33,7 @@ lines = defaultdict(list)
 instances = Counter()
 instances_l = threading.Lock()
 
-
 def update_graph(_):
-    global index
-    
     # Création de la courbe
     plt.cla()
  
@@ -47,6 +48,7 @@ def update_graph(_):
 
 def vote():
     for _ in range(0, 100):
+        # Génération d'un vote aléatoire
         i = random.randint(0, 100)
         
         if i % 2 == 0:
@@ -56,22 +58,21 @@ def vote():
             vote = form_dogs_s
             ct = form_dogs.content_type
         
-        r = requests.post("http://votingapp-b4g4ld-rg.eastus.cloudapp.azure.com/", data=vote, headers={'Content-Type': ct})
+        r = requests.post(url, data=vote, headers={'Content-Type': ct})
 
         if not r.ok:
             print("Bad server response", r.status_code)
             continue
         
-        # Enregistrement de la réponse
+        # Lecture de la réponse
         container_id = r.headers['X-HANDLED-BY']
         
         print(container_id)
-
         
         with instances_l:
             instances[container_id] += 1
 
-def test_charge(exc):
+def loadtest(exc):
     futures = []
     for _ in range(0, 100):
         future = exc.submit(vote)
@@ -80,10 +81,9 @@ def test_charge(exc):
         futures.append(future)
         time.sleep(3)
 
-
 with cf.ThreadPoolExecutor(9) as exc:
-    # Création d'un thread séparé
-    exc.submit(test_charge, exc)
+    # Création d'un thread séparé pour le loadtest
+    exc.submit(loadtest, exc)
     
     # Lancement de l'animation
     ani = FuncAnimation(plt.gcf(), update_graph, 1000)
