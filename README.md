@@ -1,1 +1,1 @@
-# Multithreaded Loadtest 
+# Multi-threaded Loadtest
